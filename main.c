@@ -1,15 +1,21 @@
+// Gabriel de Andrade Dezan
+// 10525706
+
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 typedef struct node {
-    int data;
+    char gate;
+    int index;
+    int bin;
     struct node* left;
     struct node* right;
 } Node;
 
 typedef Node* Tree;
 
-Tree* create_tree() {
+Tree* CreateTree() {
     Tree* root = (Tree*)malloc(sizeof(Tree));
     if (root != NULL) {
         *root = NULL;
@@ -17,55 +23,134 @@ Tree* create_tree() {
     return root;
 }
 
-void free_node(Node* node) {
+void FreeNode(Node* node) {
     if (node == NULL) return;
-    free_node(node->left);
-    free_node(node->right);
+    FreeNode(node->left);
+    FreeNode(node->right);
     free(node);
     node = NULL;
 }
 
-void free_tree(Tree* root) {
+void FreeTree(Tree* root) {
     if (root == NULL) return;
-    free_node(*root);
+    FreeNode(*root);
     free(root);
 }
 
-int insert_tree(Tree* root, int value) {
-    if (root == NULL) return 0;
+char* GetParent(char value[13]) {
+    char* parent_string = malloc(4 * sizeof(char));
+    for (int i = 0; i < 3; i++) parent_string[i] = value[i];
+    parent_string[3] = '\0';
+    return parent_string;
+}
+
+char* GetLeftChild(char value[13]) {
+    char* child_string = malloc(4 * sizeof(char));
+    for (int i = 4; i < 7; i++) child_string[i - 4] = value[i];
+    child_string[4] = '\0';
+    return child_string;
+}
+
+char* GetRightChild(char value[13]) {
+    if (value[8] == '\0' || value[9] == '\0') return NULL;
+    char* child_string = malloc(4 * sizeof(char));
+    for (int i = 8; i < 11; i++) child_string[i - 8] = value[i];
+    child_string[4] = '\0';
+    return child_string;
+}
+
+int GetGateIndex(char gate[4]) {
+    char index_string[3];
+    index_string[0] = gate[1];
+    index_string[1] = gate[2];
+    index_string[2] = '\0';
+    return atoi(index_string);
+}
+
+Node* CreateNode(char value[4]) {
     Node* new;
     new = (Node*)malloc(sizeof(Node));
     if (new == NULL) return 0;
-    new->data = value;
+    new->gate = value[0];
+    new->index = GetGateIndex(value);
     new->right = NULL;
+    new->bin = -1;
     new->left = NULL;
+    return new;
+}
 
-    if (*root == NULL)
-        *root = new;
-    else {
-        Node* current = *root;
-        Node* prev = NULL;
-        while (current != NULL) {
-            prev = current;
-            if (value == current->data) {
-                free(new);
-                return 0;  // elemento já existe
-            }
-
-            if (value > current->data)
-                current = current->right;
-            else
-                current = current->left;
+void SearchAndInsert(Tree* root, char value[13]) {
+    char* parent = GetParent(value);
+    if (root == NULL) return;
+    if (*root != NULL) {
+        if (parent[0] == (*root)->gate &&
+            GetGateIndex(parent) == (*root)->index) {
+            char* left_child = GetLeftChild(value);
+            char* right_child = GetRightChild(value);
+            (*root)->left = CreateNode(left_child);
+            if (right_child != NULL) (*root)->right = CreateNode(right_child);
         }
-        if (value > prev->data)
-            prev->right = new;
-        else
-            prev->left = new;
+        SearchAndInsert(&((*root)->left), value);
+        SearchAndInsert(&((*root)->right), value);
     }
+}
+
+int InsertGates(Tree* root, char value[13]) {
+    char* parent = GetParent(value);
+    if (root == NULL) return 0;
+
+    if (*root == NULL) {
+        *root = CreateNode(parent);
+    }
+    SearchAndInsert(root, value);
     return 1;
 }
 
-Node* remove_current(Node* current) {
+void GateValue(Node* gate) {
+    Node* current = gate;
+    if (current == NULL) return;
+    int lValue, rValue;
+    if (current->left != NULL) lValue = current->left->bin;
+    if (current->right != NULL) rValue = current->right->bin;
+    switch (gate->gate) {
+        case 'A':
+            current->bin = (lValue & rValue);
+            break;
+        case 'O':
+            current->bin = (lValue | rValue);
+            break;
+        case 'D':
+            current->bin = !(lValue & rValue);
+            break;
+        case 'R':
+            current->bin = !(lValue | rValue);
+            break;
+        case 'X':
+            current->bin = (lValue ^ rValue);
+            break;
+        case 'N':
+            current->bin = !(lValue);
+            break;
+    }
+}
+
+void EntryValues(Tree* root, int* count, char* values) {
+    if (root == NULL) return;
+    Node* current = *root;
+    if (current != NULL) {
+        if (current->gate == 'E') {
+            (*count)++;
+            int entry_value = values[(current->index) * 2] - '0';
+            current->bin = entry_value;
+        }
+        EntryValues(&(current->left), count, values);
+        EntryValues(&(current->right), count, values);
+    }
+}
+
+void GetGateValues(Tree* root, char* values) {}
+
+Node* RemoveCurrent(Node* current) {
     Node *node1, *node2;
     if (current->left == NULL) {
         node2 = current->right;
@@ -89,24 +174,25 @@ Node* remove_current(Node* current) {
     return node2;
 }
 
-int remove_tree(Tree* root, int value) {
+int RemoveTree(Tree* root, char value[4]) {
+    int new_index = GetGateIndex(value);
     if (root == NULL) return 0;
     Node* prev = NULL;
     Node* current = *root;
     while (current != NULL) {
-        if (value == current->data) {
+        if (new_index == current->index) {
             if (current == *root)
-                *root = remove_current(current);
+                *root = RemoveCurrent(current);
             else {
                 if (prev->right == current)
-                    prev->right = remove_current(current);
+                    prev->right = RemoveCurrent(current);
                 else
-                    prev->left = remove_current(current);
+                    prev->left = RemoveCurrent(current);
             }
             return 1;
         }
         prev = current;
-        if (value > current->data)
+        if (new_index > current->index)
             current = current->right;
         else
             current = current->left;
@@ -114,125 +200,48 @@ int remove_tree(Tree* root, int value) {
     return 0;
 }
 
-int is_tree_empty(Tree* root) {
+int IsTreeEmpty(Tree* root) {
     if (root == NULL) return 1;
     if (*root == NULL) return 1;
     return 0;
 }
 
-int total_nodes_tree(Tree* root) {
+int TotalNodesTree(Tree* root) {
     if (root == NULL) return 0;
     if (*root == NULL) return 0;
-    int alt_left = total_nodes_tree(&((*root)->left));
-    int alt_right = total_nodes_tree(&((*root)->right));
+    int alt_left = TotalNodesTree(&((*root)->left));
+    int alt_right = TotalNodesTree(&((*root)->right));
     return (alt_left + alt_right + 1);
 }
 
-int height_tree(Tree* root) {
-    if (root == NULL) return 0;
-    if (*root == NULL) return 0;
-    int height_left = height_tree(&((*root)->left));
-    int height_right = height_tree(&((*root)->right));
-    if (height_left > height_right)
-        return (height_left + 1);
-    else
-        return (height_right + 1);
-}
-
-int consult_tree(Tree* root, int value) {
-    if (root == NULL) return 0;
-    Node* current = *root;
-    while (current != NULL) {
-        if (value == current->data) {
-            return 1;
-        }
-        if (value > current->data)
-            current = current->right;
-        else
-            current = current->left;
-    }
-    return 0;
-}
-
-void preOrdem_tree(Tree* root) {
+void InOrderTree(Tree* root) {
     if (root == NULL) return;
     if (*root != NULL) {
-        printf("%d\n", (*root)->data);
-        preOrdem_tree(&((*root)->left));
-        preOrdem_tree(&((*root)->right));
+        InOrderTree(&((*root)->left));
+        printf("%c", (*root)->gate);
+        printf("%02d -> %d\n", (*root)->index, (*root)->bin);
+        InOrderTree(&((*root)->right));
     }
-}
-
-void emOrdem_tree(Tree* root) {
-    if (root == NULL) return;
-    if (*root != NULL) {
-        emOrdem_tree(&((*root)->left));
-        printf("%d\n", (*root)->data);
-        emOrdem_tree(&((*root)->right));
-    }
-}
-
-void posOrdem_tree(Tree* root) {
-    if (root == NULL) return;
-    if (*root != NULL) {
-        posOrdem_tree(&((*root)->left));
-        posOrdem_tree(&((*root)->right));
-        printf("%d\n", (*root)->data);
-    }
-}
-
-// Funcoes Adicionais de Arvore
-
-void Procura_preOrdem_tree(Tree* root, int value, int* achou) {
-    if (root == NULL) return;
-    if (*achou) return;
-    if (*root != NULL) {
-        if (value == (*root)->data) {
-            printf("Achou: %d! \n", (*root)->data);
-            *achou = 1;
-        }
-        Procura_preOrdem_tree(&((*root)->left), value, achou);
-        Procura_preOrdem_tree(&((*root)->right), value, achou);
-    }
-}
-
-void Exibe_emOrdem_tree(Tree* root) {
-    if (root == NULL) return;
-
-    if (*root != NULL) {
-        printf("Atual: %d - Vai para Esquerda \n", (*root)->data);
-        Exibe_emOrdem_tree(&((*root)->left));
-        printf("Dado : %d \n", (*root)->data);
-        printf("Atual: %d - Vai para Direita \n", (*root)->data);
-        Exibe_emOrdem_tree(&((*root)->right));
-        printf("Feito(%d) \n", (*root)->data);
-    } else
-        printf("NULL\n");
 }
 
 int main() {
-    int N = 8, dados[8] = {50, 100, 30, 20, 40, 45, 35, 37};
+    Tree* root = CreateTree();
 
-    Tree* raiz = create_tree();
-
-    int i;
-    for (i = 0; i < N; i++) insert_tree(raiz, dados[i]);
+    InsertGates(root, "R00 A00 O00 ");
+    InsertGates(root, "A00 E00 E01 ");
+    InsertGates(root, "O00 E02 E03 ");
 
     printf("Dados:\n");
-    emOrdem_tree(raiz);
-
-    printf("\n");
-    printf("Percurso:\n");
-    Exibe_emOrdem_tree(raiz);
+    InOrderTree(root);
+    printf("Valor: %d\n", (*root)->bin);
+    int i = 0;
+    EntryValues(root, &i, "1 0 1 0");
+    printf("%d entries\n", i);
 
     // system("Pause");
     printf("\n");
 
-    i = 0;
-    Procura_preOrdem_tree(raiz, 45, &i);
-    if (i == 0) printf("Nao Achou! \n");
-
-    free_tree(raiz);
+    FreeTree(root);
 
     return 0;
 }
