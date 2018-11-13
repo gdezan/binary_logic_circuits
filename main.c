@@ -163,70 +163,6 @@ void GetGateValues(Tree* root) {
     }
 }
 
-Node* RemoveCurrent(Node* current) {
-    Node *node1, *node2;
-    if (current->left == NULL) {
-        node2 = current->right;
-        free(current);
-        return node2;
-    }
-    node1 = current;
-    node2 = current->left;
-    while (node2->right != NULL) {
-        node1 = node2;
-        node2 = node2->right;
-    }
-    // node2 é o nó anterior a r na ordem e-r-d
-    // node1 é o pai de node2
-    if (node1 != current) {
-        node1->right = node2->left;
-        node2->left = current->left;
-    }
-    node2->right = current->right;
-    free(current);
-    return node2;
-}
-
-int RemoveTree(Tree* root, char value[4]) {
-    int new_index = GetGateIndex(value);
-    if (root == NULL) return 0;
-    Node* prev = NULL;
-    Node* current = *root;
-    while (current != NULL) {
-        if (new_index == current->index) {
-            if (current == *root)
-                *root = RemoveCurrent(current);
-            else {
-                if (prev->right == current)
-                    prev->right = RemoveCurrent(current);
-                else
-                    prev->left = RemoveCurrent(current);
-            }
-            return 1;
-        }
-        prev = current;
-        if (new_index > current->index)
-            current = current->right;
-        else
-            current = current->left;
-    }
-    return 0;
-}
-
-int IsTreeEmpty(Tree* root) {
-    if (root == NULL) return 1;
-    if (*root == NULL) return 1;
-    return 0;
-}
-
-int TotalNodesTree(Tree* root) {
-    if (root == NULL) return 0;
-    if (*root == NULL) return 0;
-    int alt_left = TotalNodesTree(&((*root)->left));
-    int alt_right = TotalNodesTree(&((*root)->right));
-    return (alt_left + alt_right + 1);
-}
-
 void InOrderTree(Tree* root) {
     if (root == NULL) return;
     if (*root != NULL) {
@@ -266,8 +202,6 @@ int main() {
     }
     for (int i = 0; i < num_of_entries; i++) printf("%d\n", answers[i]);
     printf("\n");
-
-    // FreeTree(root);
 
     return 0;
 }
