@@ -5,6 +5,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define EMPTY -1
+
 typedef struct node {
     char gate;
     int index;
@@ -74,7 +76,7 @@ Node* CreateNode(char value[4]) {
     new->gate = value[0];
     new->index = GetGateIndex(value);
     new->right = NULL;
-    new->bin = -1;
+    new->bin = EMPTY;
     new->left = NULL;
     return new;
 }
@@ -112,43 +114,54 @@ void GateValue(Node* gate) {
     int lValue, rValue;
     if (current->left != NULL) lValue = current->left->bin;
     if (current->right != NULL) rValue = current->right->bin;
-    switch (gate->gate) {
-        case 'A':
-            current->bin = (lValue & rValue);
-            break;
-        case 'O':
-            current->bin = (lValue | rValue);
-            break;
-        case 'D':
-            current->bin = !(lValue & rValue);
-            break;
-        case 'R':
-            current->bin = !(lValue | rValue);
-            break;
-        case 'X':
-            current->bin = (lValue ^ rValue);
-            break;
-        case 'N':
-            current->bin = !(lValue);
-            break;
+    if (lValue != EMPTY && rValue != EMPTY) {
+        switch (gate->gate) {
+            case 'A':
+                current->bin = (lValue & rValue);
+                break;
+            case 'O':
+                current->bin = (lValue | rValue);
+                break;
+            case 'D':
+                current->bin = !(lValue & rValue);
+                break;
+            case 'R':
+                current->bin = !(lValue | rValue);
+                break;
+            case 'X':
+                current->bin = (lValue ^ rValue);
+                break;
+            case 'N':
+                current->bin = !(lValue);
+                break;
+        }
     }
 }
 
-void EntryValues(Tree* root, int* count, char* values) {
+void EntryValues(Tree* root, char* values) {
     if (root == NULL) return;
     Node* current = *root;
     if (current != NULL) {
         if (current->gate == 'E') {
-            (*count)++;
             int entry_value = values[(current->index) * 2] - '0';
             current->bin = entry_value;
+        } else {
+            current->bin = EMPTY;
         }
-        EntryValues(&(current->left), count, values);
-        EntryValues(&(current->right), count, values);
+        EntryValues(&(current->left), values);
+        EntryValues(&(current->right), values);
     }
 }
 
-void GetGateValues(Tree* root, char* values) {}
+void GetGateValues(Tree* root) {
+    if (root == NULL) return;
+    Node* current = *root;
+    if (current != NULL) {
+        GateValue(current);
+        GetGateValues(&(current->left));
+        GetGateValues(&(current->right));
+    }
+}
 
 Node* RemoveCurrent(Node* current) {
     Node *node1, *node2;
@@ -226,22 +239,35 @@ void InOrderTree(Tree* root) {
 
 int main() {
     Tree* root = CreateTree();
-
-    InsertGates(root, "R00 A00 O00 ");
-    InsertGates(root, "A00 E00 E01 ");
-    InsertGates(root, "O00 E02 E03 ");
-
-    printf("Dados:\n");
-    InOrderTree(root);
-    printf("Valor: %d\n", (*root)->bin);
-    int i = 0;
-    EntryValues(root, &i, "1 0 1 0");
-    printf("%d entries\n", i);
-
-    // system("Pause");
+    char line_input[256];
+    int type_of_input;
+    scanf("%d", &type_of_input);
+    if (type_of_input == 0) {
+        int num_of_lines;
+        scanf("%d", &num_of_lines);
+        for (int i = 0; i < num_of_lines; i++) {
+            fflush(stdin);
+            fgets(line_input, 256, stdin);
+            InsertGates(root, line_input);
+        }
+    } else {
+        return 0;
+    }
+    int num_of_entries;
+    scanf("%d", &num_of_entries);
+    char entries[256];
+    int* answers = (int*)malloc(num_of_entries * sizeof(int));
+    for (int i = 0; i < num_of_entries; i++) {
+        fflush(stdin);
+        fgets(entries, 256, stdin);
+        EntryValues(root, entries);
+        while ((*root)->bin == EMPTY) GetGateValues(root);
+        answers[i] = (*root)->bin;
+    }
+    for (int i = 0; i < num_of_entries; i++) printf("%d\n", answers[i]);
     printf("\n");
 
-    FreeTree(root);
+    // FreeTree(root);
 
     return 0;
 }
