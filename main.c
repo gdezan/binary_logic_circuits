@@ -157,7 +157,9 @@ void GetGateValues(Tree* root) {
     if (root == NULL) return;
     Node* current = *root;
     if (current != NULL) {
-        GateValue(current);
+        if (current->left != NULL && current->left->bin != EMPTY &&
+            current->bin == EMPTY)
+            GateValue(current);
         GetGateValues(&(current->left));
         GetGateValues(&(current->right));
     }
@@ -173,35 +175,50 @@ void InOrderTree(Tree* root) {
     }
 }
 
-int main() {
+int main(int argc, char const* argv[]) {
     Tree* root = CreateTree();
+
     char line_input[256];
-    int type_of_input;
-    scanf("%d", &type_of_input);
+    char string_of_input[8];
+    // FILE* fp = fopen(argv[1], "r");
+    fgets(string_of_input, 3, stdin);
+    int type_of_input = atoi(string_of_input);
+    int num_of_lines;
+
     if (type_of_input == 0) {
-        int num_of_lines;
-        scanf("%d", &num_of_lines);
+        fgets(string_of_input, 8, stdin);
+        num_of_lines = atoi(string_of_input);
         for (int i = 0; i < num_of_lines; i++) {
-            fflush(stdin);
+            // fflush(stdin);
             fgets(line_input, 256, stdin);
             InsertGates(root, line_input);
         }
     } else {
         return 0;
     }
+
     int num_of_entries;
-    scanf("%d", &num_of_entries);
+    fgets(string_of_input, 8, stdin);
+    num_of_entries = atoi(string_of_input);
+
     char entries[256];
     int* answers = (int*)malloc(num_of_entries * sizeof(int));
-    for (int i = 0; i < num_of_entries; i++) {
-        fflush(stdin);
+    // fgets(entries, 256, stdin);
+
+    for (int i = 1; i <= num_of_entries; i++) {
+        // fflush(stdin);
         fgets(entries, 256, stdin);
         EntryValues(root, entries);
-        while ((*root)->bin == EMPTY) GetGateValues(root);
+        while ((*root)->bin == EMPTY) {
+            GetGateValues(root);
+        }
         answers[i] = (*root)->bin;
     }
-    for (int i = 0; i < num_of_entries; i++) printf("%d\n", answers[i]);
-    printf("\n");
+
+    for (int i = 1; i <= num_of_entries; i++) {
+        printf("%d\n", answers[i]);
+    }
+    // fclose(fp);
 
     return 0;
 }
