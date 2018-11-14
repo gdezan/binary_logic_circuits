@@ -91,6 +91,9 @@ void SearchAndInsert(Tree* root, char value[13]) {
             char* right_child = GetRightChild(value);
             (*root)->left = CreateNode(left_child);
             if (right_child != NULL) (*root)->right = CreateNode(right_child);
+            free(parent);
+            free(left_child);
+            free(right_child);
         }
         SearchAndInsert(&((*root)->left), value);
         SearchAndInsert(&((*root)->right), value);
@@ -109,6 +112,7 @@ char* GetGateFromLine(int index, char line[1024]) {
 void LineInsert(Tree* root, char line[1024], int* count) {
     char* gate_str = GetGateFromLine(*count, line);
     Node* gate = CreateNode(gate_str);
+    free(gate_str);
     if (gate == NULL) return;
     (*root) = gate;
     (*count)++;
@@ -118,11 +122,11 @@ void LineInsert(Tree* root, char line[1024], int* count) {
 }
 
 int InsertGates(Tree* root, char value[13]) {
-    char* parent = GetParent(value);
     if (root == NULL) return 0;
-
     if (*root == NULL) {
+        char* parent = GetParent(value);
         *root = CreateNode(parent);
+        free(parent);
     }
     SearchAndInsert(root, value);
     return 1;
@@ -241,6 +245,7 @@ int main(int argc, char const* argv[]) {
     for (int i = 1; i <= num_of_entries; i++) {
         printf("%d\n", answers[i]);
     }
+    FreeTree(root);
     // fclose(fp);
 
     return 0;
