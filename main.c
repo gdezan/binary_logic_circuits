@@ -97,6 +97,26 @@ void SearchAndInsert(Tree* root, char value[13]) {
     }
 }
 
+char* GetGateFromLine(int index, char line[1024]) {
+    char* gate = (char*)malloc(4 * sizeof(char));
+    for (int i = 0; i < 3; i++) {
+        gate[i] = line[(index * 4) + i];
+    }
+    gate[3] = '\0';
+    return gate;
+}
+
+void LineInsert(Tree* root, char line[1024], int* count) {
+    char* gate_str = GetGateFromLine(*count, line);
+    Node* gate = CreateNode(gate_str);
+    if (gate == NULL) return;
+    (*root) = gate;
+    (*count)++;
+    if (gate->gate == 'E') return;
+    LineInsert(&((*root)->left), line, count);
+    if (gate->gate != 'N') LineInsert(&((*root)->right), line, count);
+}
+
 int InsertGates(Tree* root, char value[13]) {
     char* parent = GetParent(value);
     if (root == NULL) return 0;
@@ -178,7 +198,7 @@ void InOrderTree(Tree* root) {
 int main(int argc, char const* argv[]) {
     Tree* root = CreateTree();
 
-    char line_input[256];
+    char line_input[1024];
     char string_of_input[8];
     // FILE* fp = fopen(argv[1], "r");
     fgets(string_of_input, 3, stdin);
@@ -186,28 +206,31 @@ int main(int argc, char const* argv[]) {
     int num_of_lines;
 
     if (type_of_input == 0) {
+        // if (1 == 0) {
         fgets(string_of_input, 8, stdin);
         num_of_lines = atoi(string_of_input);
         for (int i = 0; i < num_of_lines; i++) {
             // fflush(stdin);
-            fgets(line_input, 256, stdin);
+            fgets(line_input, 1024, stdin);
             InsertGates(root, line_input);
         }
     } else {
-        return 0;
+        fgets(line_input, 1024, stdin);
+        int i = 0;
+        LineInsert(root, line_input, &i);
     }
 
     int num_of_entries;
     fgets(string_of_input, 8, stdin);
     num_of_entries = atoi(string_of_input);
 
-    char entries[256];
+    char entries[1024];
     int* answers = (int*)malloc(num_of_entries * sizeof(int));
-    // fgets(entries, 256, stdin);
+    // fgets(entries, 1024, stdin);
 
     for (int i = 1; i <= num_of_entries; i++) {
         // fflush(stdin);
-        fgets(entries, 256, stdin);
+        fgets(entries, 1024, stdin);
         EntryValues(root, entries);
         while ((*root)->bin == EMPTY) {
             GetGateValues(root);
