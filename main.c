@@ -8,15 +8,16 @@
 #define EMPTY -1
 
 typedef struct node {
-    char gate;
-    int index;
-    int bin;
+    char gate;  // Tipo de portão
+    int index;  // Numeração do Portão
+    int bin;    // Valor no portão (0, 1 ou EMPTY (-1))
     struct node* left;
     struct node* right;
 } Node;
 
 typedef Node* Tree;
 
+// Função para a criação da árvore
 Tree* CreateTree() {
     Tree* root = (Tree*)malloc(sizeof(Tree));
     if (root != NULL) {
@@ -25,6 +26,7 @@ Tree* CreateTree() {
     return root;
 }
 
+// Libera um nó específico da árvore
 void FreeNode(Node* node) {
     if (node == NULL) return;
     FreeNode(node->left);
@@ -33,12 +35,19 @@ void FreeNode(Node* node) {
     node = NULL;
 }
 
+// Libera a árvore
 void FreeTree(Tree* root) {
     if (root == NULL) return;
     FreeNode(*root);
     free(root);
 }
 
+/*
+ * As três funções seguintes retornam a os portões
+ * em forma de char* a partir da entrada do tipo:
+ *          "A00 E00 E01".
+ * Retornando respectivamente "A00", "E00" e "E01".
+ */
 char* GetParent(char value[13]) {
     char* parent_string = malloc(4 * sizeof(char));
     for (int i = 0; i < 3; i++) parent_string[i] = value[i];
@@ -61,6 +70,10 @@ char* GetRightChild(char value[13]) {
     return child_string;
 }
 
+/*
+ * A partir de um string do tipo "A02", retorna
+ * o índice do portão (2, nesse caso).
+ */
 int GetGateIndex(char gate[4]) {
     char index_string[3];
     index_string[0] = gate[1];
@@ -69,6 +82,7 @@ int GetGateIndex(char gate[4]) {
     return atoi(index_string);
 }
 
+// Inicializa um nó a partir de string do tipo "A00"
 Node* CreateNode(char value[4]) {
     Node* new;
     new = (Node*)malloc(sizeof(Node));
@@ -81,12 +95,18 @@ Node* CreateNode(char value[4]) {
     return new;
 }
 
+/*
+ * Função que insere os portões a partir das entradas do tipo
+ *  "X00 Y00 Z00"
+ * Ela primeiro procura retira o primeiro portão (X00), o procura
+ * na árvore e, caso ache, insere os dois filhos (Y00 e Z00) em seguida
+ */
 void SearchAndInsert(Tree* root, char value[13]) {
     char* parent = GetParent(value);
     if (root == NULL) return;
     if (*root != NULL) {
-        if (parent[0] == (*root)->gate &&
-            GetGateIndex(parent) == (*root)->index) {
+        if (parent[0] == (*root)->gate &&  // Confirmando se o portão
+            GetGateIndex(parent) == (*root)->index) {  // é o "pai"
             char* left_child = GetLeftChild(value);
             char* right_child = GetRightChild(value);
             (*root)->left = CreateNode(left_child);
@@ -95,9 +115,20 @@ void SearchAndInsert(Tree* root, char value[13]) {
             free(left_child);
             free(right_child);
         }
-        SearchAndInsert(&((*root)->left), value);
+        SearchAndInsert(&((*root)->left), value);  // Continua procurando
         SearchAndInsert(&((*root)->right), value);
     }
+}
+
+int InsertGates(Tree* root, char value[13]) {
+    if (root == NULL) return 0;
+    if (*root == NULL) {
+        char* parent = GetParent(value);
+        *root = CreateNode(parent);
+        free(parent);
+    }
+    SearchAndInsert(root, value);
+    return 1;
 }
 
 char* GetGateFromLine(int index, char line[1024]) {
@@ -121,15 +152,26 @@ void LineInsert(Tree* root, char line[1024], int* count) {
     if (gate->gate != 'N') LineInsert(&((*root)->right), line, count);
 }
 
-int InsertGates(Tree* root, char value[13]) {
-    if (root == NULL) return 0;
-    if (*root == NULL) {
-        char* parent = GetParent(value);
-        *root = CreateNode(parent);
-        free(parent);
+/*
+ * A partir de uma string do tipo "1 0 1 0", adiciona
+ * esses valores em suas respectivas entradas.
+ * (Nesse caso, E00 = 1, E01 = 0, E02 = 1, E03 = 0)
+ */
+void EntryValues(Tree* root, char* values) {
+    if (root == NULL) return;
+    Node* current = *root;
+    if (current != NULL) {
+        if (current->gate == 'E') {  // Se o portão for uma entrada
+            int entry_value = values[(current->index) * 2] -
+                              '0';       // Pega o respectivo valor na string
+            current->bin = entry_value;  // Coloca no lugar
+        } else {
+            current->bin = EMPTY;  // Caso contrário, "limpa" o portão
+        }
+        EntryValues(&(current->left),
+                    values);  // Continua procurando por outros
+        EntryValues(&(current->right), values);  // portões
     }
-    SearchAndInsert(root, value);
-    return 1;
 }
 
 void GateValue(Node* gate) {
@@ -159,21 +201,6 @@ void GateValue(Node* gate) {
                 current->bin = !(lValue);
                 break;
         }
-    }
-}
-
-void EntryValues(Tree* root, char* values) {
-    if (root == NULL) return;
-    Node* current = *root;
-    if (current != NULL) {
-        if (current->gate == 'E') {
-            int entry_value = values[(current->index) * 2] - '0';
-            current->bin = entry_value;
-        } else {
-            current->bin = EMPTY;
-        }
-        EntryValues(&(current->left), values);
-        EntryValues(&(current->right), values);
     }
 }
 
