@@ -120,6 +120,7 @@ void SearchAndInsert(Tree* root, char value[13]) {
     }
 }
 
+// Função que chama SearchAndInsert e preenche os portões
 int InsertGates(Tree* root, char value[13]) {
     if (root == NULL) return 0;
     if (*root == NULL) {
@@ -131,6 +132,11 @@ int InsertGates(Tree* root, char value[13]) {
     return 1;
 }
 
+/*
+ * Função que retorna um portão de uma entrada do tipo '1', dado o número do portão
+ * Ex.: GetGateFromLine(2, "A00 N00 R00 E01") retorna "R00"
+ *                          [0] [1] [2] [3]
+ */
 char* GetGateFromLine(int index, char line[1024]) {
     char* gate = (char*)malloc(4 * sizeof(char));
     for (int i = 0; i < 3; i++) {
@@ -140,16 +146,17 @@ char* GetGateFromLine(int index, char line[1024]) {
     return gate;
 }
 
+// Insere a entrada do tipo '1' recursivamente
 void LineInsert(Tree* root, char line[1024], int* count) {
     char* gate_str = GetGateFromLine(*count, line);
     Node* gate = CreateNode(gate_str);
     free(gate_str);
     if (gate == NULL) return;
     (*root) = gate;
-    (*count)++;
-    if (gate->gate == 'E') return;
+    (*count)++; // Vai aumentando para poder pegar o portão seguinte da string
+    if (gate->gate == 'E') return; // Termina de inserir num ramo, quando o portão é uma entrada
     LineInsert(&((*root)->left), line, count);
-    if (gate->gate != 'N') LineInsert(&((*root)->right), line, count);
+    if (gate->gate != 'N') LineInsert(&((*root)->right), line, count); // Apesar se o portão não for do tipo NOT
 }
 
 /*
@@ -174,6 +181,10 @@ void EntryValues(Tree* root, char* values) {
     }
 }
 
+/*
+ * A partir do nó, esse método pega o tipo de portão e, a partir
+ * dos seus filhos, preenche o estado lógico do portão
+ */
 void GateValue(Node* gate) {
     Node* current = gate;
     if (current == NULL) return;
@@ -204,6 +215,10 @@ void GateValue(Node* gate) {
     }
 }
 
+/*
+ * Vai iterando pela árvore, preenchendo todos os estados
+ * lógicos dos portões, com o auxílio do método GateValue
+ */
 void GetGateValues(Tree* root) {
     if (root == NULL) return;
     Node* current = *root;
@@ -216,56 +231,56 @@ void GetGateValues(Tree* root) {
     }
 }
 
-void InOrderTree(Tree* root) {
-    if (root == NULL) return;
-    if (*root != NULL) {
-        InOrderTree(&((*root)->left));
-        printf("%c", (*root)->gate);
-        printf("%02d -> %d\n", (*root)->index, (*root)->bin);
-        InOrderTree(&((*root)->right));
-    }
-}
-
 int main(int argc, char const* argv[]) {
     Tree* root = CreateTree();
 
-    char line_input[1024];
-    char string_of_input[8];
-    // FILE* fp = fopen(argv[1], "r");
-    fgets(string_of_input, 3, stdin);
-    int type_of_input = atoi(string_of_input);
+    char line_input[1024]; // String que vai receber a maioria das entradas
+    char string_of_input[8]; 
+
+    fgets(string_of_input, 3, stdin);               // Recebe o tipo de entrada
+    int type_of_input = atoi(string_of_input);      // e converte para int
+    
     int num_of_lines;
 
     if (type_of_input == 0) {
-        // if (1 == 0) {
-        fgets(string_of_input, 8, stdin);
+        fgets(string_of_input, 8, stdin);           // Recebe a quantidade de linhas de entrada
         num_of_lines = atoi(string_of_input);
         for (int i = 0; i < num_of_lines; i++) {
-            // fflush(stdin);
-            fgets(line_input, 1024, stdin);
-            InsertGates(root, line_input);
+            fgets(line_input, 1024, stdin);         // A partir da quantidade de linhas de entrada,
+            InsertGates(root, line_input);          // vai montando a árvore
         }
-    } else {
+    } else if (type_of_input == 1) {
         fgets(line_input, 1024, stdin);
-        int i = 0;
-        LineInsert(root, line_input, &i);
+        int i = 0;                                  // Monta a árvore a partida da entrada do
+        LineInsert(root, line_input, &i);           // tipo 1, recursivamente
+    } else {
+        return 0;
     }
 
     int num_of_entries;
-    fgets(string_of_input, 8, stdin);
+    fgets(string_of_input, 8, stdin);               // Recebe a quantidade de 'testes' serão feitos
     num_of_entries = atoi(string_of_input);
 
     char entries[1024];
+
+    // As respostas serão postas em um vetor de inteiros, para serem exibidas após
+    // todos os testes serem rodados
     int* answers = (int*)malloc(num_of_entries * sizeof(int));
-    // fgets(entries, 1024, stdin);
 
     for (int i = 1; i <= num_of_entries; i++) {
-        // fflush(stdin);
         fgets(entries, 1024, stdin);
+
+        // Primeiro preenche o valor dos portões de entrada e "esvazia" os outros portões
+        // que foram preenchidos em testes anteriores
         EntryValues(root, entries);
+
+        // Em seguida, vai preenchendo o resto dos estados lógicos, até que o nó cabeça da
+        // árvore não esteja mais vazio
         while ((*root)->bin == EMPTY) {
             GetGateValues(root);
         }
+
+        // Pega a resposta e põe no vetor
         answers[i] = (*root)->bin;
     }
 
@@ -273,7 +288,6 @@ int main(int argc, char const* argv[]) {
         printf("%d\n", answers[i]);
     }
     FreeTree(root);
-    // fclose(fp);
 
     return 0;
 }
